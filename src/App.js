@@ -1,6 +1,4 @@
-import React, { useEffect, useState } from "react";
-import { Auth } from '@supabase/auth-ui-react';
-import { ThemeSupa } from '@supabase/auth-ui-shared';
+import { useEffect, useState } from "react";
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import './App.css';
@@ -12,97 +10,62 @@ const supabase = createClient(
 );
 
 function App() {
-  const [userId, setUserId] = useState('');
-  const [media, setMedia] = useState([]);
+  const [uploadStatus, setUploadStatus] = useState('');
+  const [uploadUrl, setUploadUrl] = useState('');
+  const [kostenvoranschlagId, setKostenvoranschlagId] = useState('');
 
-  // ✅ User aus Supabase holen
-  const getUser = async () => {
-    try {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) throw error;
-      setUserId(user?.id || '');
-    } catch (error) {
-      console.error('Fehler beim Abrufen des Nutzers:', error.message);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('kostenvoranschlag_id');
+    if (id) {
+      setKostenvoranschlagId(id);
     }
-  };
+  }, []);
 
-  // ✅ Bild in Supabase hochladen
   const uploadImage = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    if (!file || !kostenvoranschlagId) {
+      setUploadStatus('Fehlende Datei oder ID.');
+      return;
+    }
 
-    const filePath = `${userId}/${uuidv4()}.jpg`;
+    const filePath = `${kostenvoranschlagId}/${uuidv4()}.jpg`;
+
     const { data, error } = await supabase
       .storage
       .from('kostenvoranschlag')
       .upload(filePath, file);
 
     if (error) {
-      console.error('Upload-Fehler:', error.message);
+      console.error(error);
+      setUploadStatus('Fehler beim Hochladen.');
     } else {
-      console.log('Upload erfolgreich:', data);
-      getMedia();
+      setUploadStatus('Upload erfolgreich!');
+      const publicUrl = supabase
+        .storage
+        .from('kostenvoranschlag')
+        .getPublicUrl(filePath).data.publicUrl;
+      setUploadUrl(publicUrl);
     }
   };
 
-  // ✅ Liste der hochgeladenen Bilder holen
-  const getMedia = async () => {
-    if (!userId) return;
-
-    const { data, error } = await supabase.storage
-      .from('kostenvoranschlag')
-      .list(`${userId}/`, {
-        limit: 10,
-        offset: 0,
-        sortBy: { column: 'name', order: 'asc' }
-      });
-
-    if (error) {
-      console.error('Fehler beim Laden der Dateien:', error.message);
-    } else {
-      setMedia(data);
-    }
-  };
-
-  // ✅ Ausloggen
-  const signout = async () => {
-    await supabase.auth.signOut();
-    setUserId('');
-    setMedia([]);
-  };
-
-  // ✅ Lade Daten bei Änderung der UserID
-  useEffect(() => {
-    getUser();
-  }, []);
-
-  useEffect(() => {
-    if (userId) getMedia();
-  }, [userId]);
-
-  // ✅ Render
   return (
-    <div className='mt-5'>
-      {userId === '' ? (
-        <Auth supabaseClient={supabase} appearance={{ theme: ThemeSupa }} />
-      ) : (
+    <div style={{ textAlign: 'center', marginTop: '50px' }}>
+      <h2>Kostenvoranschlag Bild-Upload</h2>
+      {kostenvoranschlagId ? (
         <>
+          <p><strong>ID:</strong> {kostenvoranschlagId}</p>
           <input type="file" onChange={uploadImage} />
-          <div className='mt-5'>Meine Uploads:</div>
-          {media.length === 0 && <p>Du hast noch keine Bilder hochgeladen.</p>}
-          {media.map((item) => (
-            <div key={item.name}>
-              <img
-                src={`https://vrrmantgmjnkwajxxysd.supabase.co/storage/v1/object/public/kostenvoranschlag/${userId}/${item.name}`}
-                alt="Upload"
-                width="300"
-              />
+          <p>{uploadStatus}</p>
+          {uploadUrl && (
+            <div style={{ marginTop: '20px' }}>
+              <p>Bildvorschau:</p>
+              <img src={uploadUrl} alt="Upload Preview" width="300" />
             </div>
-          ))}
-          <div className='mt-5'>
-            <button onClick={signout}>Logout</button>
-          </div>
+          )}
         </>
+      ) : (
+        <p>Keine Kostenvoranschlag-ID in der URL gefunden.</p>
       )}
     </div>
   );
