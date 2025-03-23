@@ -1,37 +1,62 @@
 body {
   margin: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f8f9fa;
+  background-color: #f4f6f9;
   color: #333;
 }
 
 .container {
   max-width: 500px;
-  margin: 80px auto;
-  padding: 30px;
+  margin: 60px auto;
+  padding: 32px;
   background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
   text-align: center;
+  transition: all 0.3s ease;
 }
 
 h2 {
   margin-bottom: 24px;
-  font-size: 1.8rem;
+  font-size: 2rem;
   color: #222;
 }
 
 input[type="file"] {
-  margin: 16px 0;
+  margin: 20px 0;
   padding: 12px;
   border: 1px solid #ccc;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   width: 100%;
+  background-color: #f9f9f9;
+  transition: border 0.2s ease;
+}
+
+input[type="file"]:hover {
+  border-color: #007bff;
 }
 
 p {
-  margin: 10px 0;
+  margin: 12px 0;
+  font-size: 0.95rem;
+}
+
+.success {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.error {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+img {
+  margin-top: 20px;
+  max-width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 a {
@@ -46,12 +71,13 @@ a:hover {
 button {
   background-color: #007bff;
   color: #fff;
-  padding: 10px 20px;
+  padding: 12px 24px;
   font-size: 1rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   margin-top: 20px;
+  transition: background-color 0.2s ease;
 }
 
 button:hover {
@@ -61,6 +87,14 @@ button:hover {
 @media (max-width: 600px) {
   .container {
     margin: 30px 16px;
-    padding: 20px;
+    padding: 24px;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  input[type="file"] {
+    font-size: 0.95rem;
   }
 }
