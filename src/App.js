@@ -1,81 +1,100 @@
-import { Auth } from '@supabase/auth-ui-react'
-import { ThemeSupa } from '@supabase/auth-ui-shared'
-import './App.css';
-import { useEffect, useState } from "react";
-import { createClient } from '@supabase/supabase-js'
+import React, { useEffect, useState } from "react";
+import { Auth } from '@supabase/auth-ui-react';
+import { ThemeSupa } from '@supabase/auth-ui-shared';
+import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
+import './App.css';
 
+// Supabase-Client initialisieren
 const supabase = createClient(
   process.env.REACT_APP_SUPABASE_URL,
   process.env.REACT_APP_ANON_KEY
-)
+);
 
 function App() {
   const [userId, setUserId] = useState('');
   const [media, setMedia] = useState([]);
 
+  // ✅ User aus Supabase holen
   const getUser = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user !== null) {
-        setUserId(user.id);
-      } else {
-        setUserId('');
-      }
-    } catch (e) {}
-  }
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      setUserId(user?.id || '');
+    } catch (error) {
+      console.error('Fehler beim Abrufen des Nutzers:', error.message);
+    }
+  };
 
-  async function uploadImage(e) {
-    let file = e.target.files[0];
+  // ✅ Bild in Supabase hochladen
+  const uploadImage = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const filePath = `${userId}/${uuidv4()}.jpg`;
     const { data, error } = await supabase
       .storage
       .from('kostenvoranschlag')
-      .upload(userId + "/" + uuidv4() + ".jpg", file)
+      .upload(filePath, file);
 
-    if (data) {
+    if (error) {
+      console.error('Upload-Fehler:', error.message);
+    } else {
+      console.log('Upload erfolgreich:', data);
       getMedia();
-    } else {
-      console.log(error);
     }
-  }
+  };
 
-  async function getMedia() {
-    const { data, error } = await supabase.storage.from('kostenvoranschlag').list(userId + '/', {
-      limit: 10,
-      offset: 0,
-      sortBy: { column: 'name', order: 'asc' }
-    });
+  // ✅ Liste der hochgeladenen Bilder holen
+  const getMedia = async () => {
+    if (!userId) return;
 
-    if (data) {
+    const { data, error } = await supabase.storage
+      .from('kostenvoranschlag')
+      .list(`${userId}/`, {
+        limit: 10,
+        offset: 0,
+        sortBy: { column: 'name', order: 'asc' }
+      });
+
+    if (error) {
+      console.error('Fehler beim Laden der Dateien:', error.message);
+    } else {
       setMedia(data);
-    } else {
-      console.log(error);
     }
-  }
+  };
 
+  // ✅ Ausloggen
   const signout = async () => {
-    setUserId('');
     await supabase.auth.signOut();
-  }
+    setUserId('');
+    setMedia([]);
+  };
 
+  // ✅ Lade Daten bei Änderung der UserID
   useEffect(() => {
     getUser();
-    getMedia();
-  }, [userId])
+  }, []);
 
+  useEffect(() => {
+    if (userId) getMedia();
+  }, [userId]);
+
+  // ✅ Render
   return (
     <div className='mt-5'>
       {userId === '' ? (
         <Auth supabaseClient={supabase} appearance={{ theme: ThemeSupa }} />
       ) : (
         <>
-          <input type="file" onChange={(e) => uploadImage(e)} />
+          <input type="file" onChange={uploadImage} />
           <div className='mt-5'>Meine Uploads:</div>
-          {media.map((media) => (
-            <div key={media.name}>
+          {media.length === 0 && <p>Du hast noch keine Bilder hochgeladen.</p>}
+          {media.map((item) => (
+            <div key={item.name}>
               <img
-                src={`https://vrrmantgmjnkwajxxysd.supabase.co/storage/v1/object/public/kostenvoranschlag/${userId}/${media.name}`}
-                alt='Upload'
+                src={`https://vrrmantgmjnkwajxxysd.supabase.co/storage/v1/object/public/kostenvoranschlag/${userId}/${item.name}`}
+                alt="Upload"
                 width="300"
               />
             </div>
@@ -86,7 +105,7 @@ function App() {
         </>
       )}
     </div>
-  )
+  );
 }
 
 export default App;
