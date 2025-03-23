@@ -1,12 +1,20 @@
 import { useEffect, useState } from "react";
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
+import { BrowserRouter } from "react-router-dom";
 import './App.css';
 
 // Supabase-Client initialisieren
 const supabase = createClient(
   process.env.REACT_APP_SUPABASE_URL,
   process.env.REACT_APP_ANON_KEY
+);
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(
+  <BrowserRouter>
+    <App />
+  </BrowserRouter>
 );
 
 function App() {
