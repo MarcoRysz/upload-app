@@ -1,25 +1,92 @@
-import logo from './logo.svg';
+import { Auth } from '@supabase/auth-ui-react'
+import { ThemeSupa } from '@supabase/auth-ui-shared'
 import './App.css';
+import { useEffect, useState } from "react";
+import { createClient } from '@supabase/supabase-js'
+import { v4 as uuidv4 } from 'uuid';
+
+const supabase = createClient(
+  process.env.REACT_APP_SUPABASE_URL,
+  process.env.REACT_APP_ANON_KEY
+)
 
 function App() {
+  const [userId, setUserId] = useState('');
+  const [media, setMedia] = useState([]);
+
+  const getUser = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user !== null) {
+        setUserId(user.id);
+      } else {
+        setUserId('');
+      }
+    } catch (e) {}
+  }
+
+  async function uploadImage(e) {
+    let file = e.target.files[0];
+    const { data, error } = await supabase
+      .storage
+      .from('kostenvoranschlag')
+      .upload(userId + "/" + uuidv4() + ".jpg", file)
+
+    if (data) {
+      getMedia();
+    } else {
+      console.log(error);
+    }
+  }
+
+  async function getMedia() {
+    const { data, error } = await supabase.storage.from('kostenvoranschlag').list(userId + '/', {
+      limit: 10,
+      offset: 0,
+      sortBy: { column: 'name', order: 'asc' }
+    });
+
+    if (data) {
+      setMedia(data);
+    } else {
+      console.log(error);
+    }
+  }
+
+  const signout = async () => {
+    setUserId('');
+    await supabase.auth.signOut();
+  }
+
+  useEffect(() => {
+    getUser();
+    getMedia();
+  }, [userId])
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className='mt-5'>
+      {userId === '' ? (
+        <Auth supabaseClient={supabase} appearance={{ theme: ThemeSupa }} />
+      ) : (
+        <>
+          <input type="file" onChange={(e) => uploadImage(e)} />
+          <div className='mt-5'>Meine Uploads:</div>
+          {media.map((media) => (
+            <div key={media.name}>
+              <img
+                src={`https://vrrmantgmjnkwajxxysd.supabase.co/storage/v1/object/public/kostenvoranschlag/${userId}/${media.name}`}
+                alt='Upload'
+                width="300"
+              />
+            </div>
+          ))}
+          <div className='mt-5'>
+            <button onClick={signout}>Logout</button>
+          </div>
+        </>
+      )}
     </div>
-  );
+  )
 }
 
 export default App;
