@@ -3,7 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import './App.css';
 
-// Supabase-Client initialisieren
 const supabase = createClient(
   process.env.REACT_APP_SUPABASE_URL,
   process.env.REACT_APP_ANON_KEY
@@ -11,16 +10,17 @@ const supabase = createClient(
 
 function App() {
   const [kostenvoranschlagId, setKostenvoranschlagId] = useState('');
+  const [werkstattId, setWerkstattId] = useState('');
+  const [userId, setUserId] = useState('');
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploadStatus, setUploadStatus] = useState('');
   const [uploadUrls, setUploadUrls] = useState([]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const id = params.get('kostenvoranschlag_id');
-    if (id) {
-      setKostenvoranschlagId(id);
-    }
+    setKostenvoranschlagId(params.get('kostenvoranschlag_id') || '');
+    setWerkstattId(params.get('werkstatt_id') || '');
+    setUserId(params.get('user_id') || '');
   }, []);
 
   const handleFileChange = (e) => {
@@ -65,7 +65,27 @@ function App() {
 
     setUploadUrls(uploadedUrls);
     setUploadStatus("Upload abgeschlossen!");
-    setSelectedFiles([]); // Leeren nach Upload
+    setSelectedFiles([]);
+
+    // Sende Bestätigung an Make
+    if (werkstattId && userId) {
+      try {
+        await fetch("https://hook.eu2.make.com/43mhk58fxm3t0bwten5pjgbqmiwo9c37", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            werkstatt_id: werkstattId,
+            user_id: userId,
+            kostenvoranschlag_id: kostenvoranschlagId,
+            status: "upload_confirmed"
+          })
+        });
+      } catch (error) {
+        console.error("Fehler beim Senden der Bestätigung an Make:", error);
+      }
+    }
   };
 
   return (
